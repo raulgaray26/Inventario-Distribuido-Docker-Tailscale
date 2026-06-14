@@ -1,0 +1,23 @@
+# Usa la imagen oficial de Node.js 20 (LTS) en Alpine para una imagen más liviana.
+# Alpine reduce el tamaño de la imagen de ~900MB a ~180MB manteniendo funcionalidad.
+FROM node:20-alpine
+
+# Directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copiar manifiestos primero para aprovechar la caché de capas de Docker:
+# si package.json no cambia, Docker reutiliza la capa de npm install.
+COPY package*.json ./
+
+# Instalar solo dependencias de producción (sin devDependencies)
+RUN npm install --production
+
+# Copiar el resto del código fuente
+COPY . .
+
+# El puerto 3000 debe estar accesible desde la red Tailscale.
+# Este EXPOSE es documentativo; el mapeo real ocurre en el comando docker run.
+EXPOSE 3000
+
+# Comando de inicio en producción
+CMD ["npm", "start"]

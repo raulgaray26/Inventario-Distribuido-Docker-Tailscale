@@ -1,0 +1,111 @@
+/* Estilos de la interfaz del sistema de inventario */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f2f5;
+  color: #333;
+}
+
+header {
+  background: #1a1a2e;
+  color: white;
+  padding: 20px 40px;
+}
+
+header h1 { font-size: 1.8rem; }
+header p { font-size: 0.9rem; opacity: 0.7; margin-top: 4px; }
+
+main {
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.card h2 {
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+  color: #1a1a2e;
+}
+
+.form-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+input[type="text"], input[type="number"] {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 150px;
+}
+
+button {
+  padding: 8px 18px;
+  background: #1a1a2e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+button:hover { background: #2d2d5e; }
+.btn-secondary { background: #6c757d; }
+.btn-secondary:hover { background: #5a6268; }
+.btn-danger { background: #dc3545; padding: 4px 10px; font-size: 0.8rem; }
+.btn-danger:hover { background: #c82333; }
+
+.table-wrapper { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th {
+  background: #1a1a2e;
+  color: white;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+tr:hover td { background: #f8f9fa; }
+
+/* Fila con stock crítico (< 5 unidades) resaltada en amarillo */
+tr.bajo-stock td { background: #fff3cd; }
+
+.mensaje {
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+.mensaje.exito { background: #d4edda; color: #155724; }
+.mensaje.error { background: #f8d7da; color: #721c24; }

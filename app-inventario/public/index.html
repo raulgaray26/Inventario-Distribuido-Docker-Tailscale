@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Inventario</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>📦 Sistema de Inventario</h1>
+    <p>Sistemas Distribuidos — Docker + Tailscale</p>
+  </header>
+
+  <main>
+    <!-- Formulario para agregar productos -->
+    <section class="card">
+      <h2>Registrar Producto</h2>
+      <div class="form-group">
+        <input type="text" id="nombre" placeholder="Nombre del producto">
+        <input type="text" id="descripcion" placeholder="Descripción">
+        <input type="number" id="cantidad" placeholder="Cantidad en stock" min="0">
+        <input type="number" id="precio" placeholder="Precio unitario" step="0.01" min="0">
+        <button onclick="registrarProducto()">Agregar</button>
+      </div>
+    </section>
+
+    <!-- Buscar por nombre -->
+    <section class="card">
+      <h2>Buscar Producto</h2>
+      <div class="form-group">
+        <input type="text" id="busqueda" placeholder="Buscar por nombre...">
+        <button onclick="buscarProducto()">Buscar</button>
+        <button onclick="cargarProductos()" class="btn-secondary">Ver todos</button>
+      </div>
+    </section>
+
+    <!-- Actualizar stock -->
+    <section class="card">
+      <h2>Actualizar Stock</h2>
+      <div class="form-group">
+        <input type="number" id="update-id" placeholder="ID del producto">
+        <input type="number" id="update-cantidad" placeholder="Nueva cantidad" min="0">
+        <button onclick="actualizarStock()">Actualizar</button>
+      </div>
+    </section>
+
+    <!-- Tabla de productos -->
+    <section class="card">
+      <h2>Inventario</h2>
+      <div id="mensaje" class="mensaje" style="display:none;"></div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Stock</th>
+              <th>Precio</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-productos">
+            <tr><td colspan="6">Cargando productos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Carga el listado al iniciar la página
+    window.addEventListener('DOMContentLoaded', cargarProductos);
+
+    /**
+     * Muestra un mensaje temporal de estado al usuario.
+     * @param {string} texto - Mensaje a mostrar.
+     * @param {boolean} esError - Si true, muestra en rojo; si false, en verde.
+     */
+    function mostrarMensaje(texto, esError = false) {
+      const div = document.getElementById('mensaje');
+      div.textContent = texto;
+      div.style.display = 'block';
+      div.className = 'mensaje ' + (esError ? 'error' : 'exito');
+      setTimeout(() => { div.style.display = 'none'; }, 3000);
+    }
+
+    async function cargarProductos() {
+      try {
+        const resp = await fetch('/api/productos');
+        const json = await resp.json();
+        renderizarTabla(json.data);
+      } catch {
+        mostrarMensaje('Error al cargar productos. ¿Está el servidor corriendo?', true);
+      }
+    }
+
+    async function buscarProducto() {
+      const nombre = document.getElementById('busqueda').value.trim();
+      if (!nombre) return cargarProductos();
+      try {
+        const resp = await fetch(`/api/productos/buscar/${encodeURIComponent(nombre)}`);
+        const json = await resp.json();
+        renderizarTabla(json.data);
+      } catch {
+        mostrarMensaje('Error al buscar.', true);
+      }
+    }
+
+    async function registrarProducto() {
+      const datos = {
+        nombre: document.getElementById('nombre').value.trim(),
+        descripcion: document.getElementById('descripcion').value.trim(),
+        cantidad: parseInt(document.getElementById('cantidad').value),
+        precio: parseFloat(document.getElementById('precio').value)
+      };
+
+      if (!datos.nombre || !datos.descripcion || isNaN(datos.cantidad) || isNaN(datos.precio)) {
+        return mostrarMensaje('Todos los campos son requeridos.', true);
+      }
+
+      try {
+        const resp = await fetch('/api/productos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datos)
+        });
+        const json = await resp.json();
+        if (json.success) {
+          mostrarMensaje('Producto registrado correctamente.');
+          ['nombre', 'descripcion', 'cantidad', 'precio'].forEach(id => {
+            document.getElementById(id).value = '';
+          });
+          cargarProductos();
+        } else {
+          mostrarMensaje(json.message, true);
+        }
+      } catch {
+        mostrarMensaje('Error de conexión con el servidor.', true);
+      }
+    }
+
+    async function actualizarStock() {
+      const id = document.getElementById('update-id').value.trim();
+      const cantidad = parseInt(document.getElementById('update-cantidad').value);
+
+      if (!id || isNaN(cantidad)) {
+        return mostrarMensaje('Ingresa el ID y la nueva cantidad.', true);
+      }
+
+      try {
+        const resp = await fetch(`/api/productos/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cantidad })
+        });
+        const json = await resp.json();
+        if (json.success) {
+          mostrarMensaje('Stock actualizado correctamente.');
+          cargarProductos();
+        } else {
+          mostrarMensaje(json.message, true);
+        }
+      } catch {
+        mostrarMensaje('Error al actualizar.', true);
+      }
+    }
+
+    async function eliminarProducto(id) {
+      if (!confirm(`¿Eliminar el producto con ID ${id}?`)) return;
+      try {
+        const resp = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+        const json = await resp.json();
+        if (json.success) {
+          mostrarMensaje('Producto eliminado.');
+          cargarProductos();
+        } else {
+          mostrarMensaje(json.message, true);
+        }
+      } catch {
+        mostrarMensaje('Error al eliminar.', true);
+      }
+    }
+
+    /**
+     * Renderiza la tabla de productos con los datos recibidos del API.
+     * @param {Array} productos - Lista de objetos producto de la BD.
+     */
+    function renderizarTabla(productos) {
+      const tbody = document.getElementById('tabla-productos');
+      if (!productos || productos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No hay productos registrados.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = productos.map(p => `
+        <tr class="${p.cantidad < 5 ? 'bajo-stock' : ''}">
+          <td>${p.id}</td>
+          <td>${p.nombre}</td>
+          <td>${p.descripcion}</td>
+          <td>${p.cantidad}</td>
+          <td>$${parseFloat(p.precio).toFixed(2)}</td>
+          <td>
+            <button class="btn-danger" onclick="eliminarProducto(${p.id})">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
