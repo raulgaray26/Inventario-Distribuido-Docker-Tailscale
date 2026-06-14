@@ -22,7 +22,7 @@ services:
     ports:
       # Exponer el puerto 5432 al host para que Tailscale lo enrute al Estudiante 1.
       # Sin este mapeo, la BD solo sería accesible dentro de la red Docker.
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       # Volumen nombrado para persistencia: los datos sobreviven reinicios del contenedor.
       - datos-postgres:/var/lib/postgresql/data
