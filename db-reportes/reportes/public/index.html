@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes de Inventario</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>📊 Reportes de Inventario</h1>
+    <p>Sistemas Distribuidos — Módulo de Análisis</p>
+  </header>
+
+  <main>
+    <!-- Resumen general -->
+    <section class="card resumen" id="seccion-resumen">
+      <h2>Resumen General</h2>
+      <div class="metricas" id="resumen-data">
+        <div class="metrica"><span class="valor" id="total-productos">—</span><span class="etiqueta">Productos</span></div>
+        <div class="metrica"><span class="valor" id="total-unidades">—</span><span class="etiqueta">Unidades totales</span></div>
+        <div class="metrica"><span class="valor" id="valor-total">—</span><span class="etiqueta">Valor del inventario</span></div>
+      </div>
+    </section>
+
+    <!-- Alerta bajo stock -->
+    <section class="card">
+      <h2>⚠️ Alerta: Bajo Stock (&lt; 5 unidades)</h2>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Nombre</th><th>Stock actual</th><th>Precio</th></tr>
+          </thead>
+          <tbody id="tabla-bajo-stock">
+            <tr><td colspan="4">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Top 5 por valor -->
+    <section class="card">
+      <h2>🏆 Top 5 Productos por Valor en Inventario</h2>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Posición</th><th>Nombre</th><th>Stock</th><th>Precio</th><th>Valor Total</th></tr>
+          </thead>
+          <tbody id="tabla-top-valor">
+            <tr><td colspan="5">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="acciones">
+      <button onclick="cargarTodo()">🔄 Actualizar Reportes</button>
+    </div>
+  </main>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', cargarTodo);
+
+    async function cargarTodo() {
+      await Promise.all([cargarResumen(), cargarBajoStock(), cargarTopValor()]);
+    }
+
+    async function cargarResumen() {
+      try {
+        const resp = await fetch('/api/reportes/resumen');
+        const json = await resp.json();
+        const d = json.data;
+        document.getElementById('total-productos').textContent = d.total_productos;
+        document.getElementById('total-unidades').textContent = parseInt(d.total_unidades).toLocaleString();
+        document.getElementById('valor-total').textContent = '$' + parseFloat(d.valor_total_inventario).toLocaleString('es-EC', { minimumFractionDigits: 2 });
+      } catch {
+        document.getElementById('total-productos').textContent = 'Error';
+      }
+    }
+
+    async function cargarBajoStock() {
+      try {
+        const resp = await fetch('/api/reportes/bajo-stock');
+        const json = await resp.json();
+        const tbody = document.getElementById('tabla-bajo-stock');
+        if (!json.data || json.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4">✅ No hay productos con bajo stock.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = json.data.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.nombre}</td>
+            <td class="stock-critico">${p.cantidad}</td>
+            <td>$${parseFloat(p.precio).toFixed(2)}</td>
+          </tr>
+        `).join('');
+      } catch {
+        document.getElementById('tabla-bajo-stock').innerHTML = '<tr><td colspan="4">Error al cargar datos.</td></tr>';
+      }
+    }
+
+    async function cargarTopValor() {
+      try {
+        const resp = await fetch('/api/reportes/top-valor');
+        const json = await resp.json();
+        const tbody = document.getElementById('tabla-top-valor');
+        tbody.innerHTML = json.data.map((p, i) => `
+          <tr>
+            <td><span class="posicion">${i + 1}</span></td>
+            <td>${p.nombre}</td>
+            <td>${p.cantidad}</td>
+            <td>$${parseFloat(p.precio).toFixed(2)}</td>
+            <td class="valor-destacado">$${parseFloat(p.valor_total).toLocaleString('es-EC', { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `).join('');
+      } catch {
+        document.getElementById('tabla-top-valor').innerHTML = '<tr><td colspan="5">Error al cargar datos.</td></tr>';
+      }
+    }
+  </script>
+</body>
+</html>

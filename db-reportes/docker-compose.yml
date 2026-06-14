@@ -1,0 +1,74 @@
+# Docker Compose para el nodo del Estudiante 2.
+# Orquesta dos contenedores en una red Docker interna privada:
+#   1. postgres-db    → Base de datos PostgreSQL accesible por Tailscale
+#   2. reportes-app   → Servicio de reportes, solo accesible internamente
+
+version: '3.8'
+
+services:
+
+  # -------------------------------------------------------------------
+  # Contenedor A: Base de datos PostgreSQL
+  # Accesible desde fuera via Tailscale (puerto 5432 mapeado al host).
+  # El Estudiante 1 se conecta usando la IP Tailscale de esta máquina.
+  # -------------------------------------------------------------------
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: inventario-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      # Exponer el puerto 5432 al host para que Tailscale lo enrute al Estudiante 1.
+      # Sin este mapeo, la BD solo sería accesible dentro de la red Docker.
+      - "5432:5432"
+    volumes:
+      # Volumen nombrado para persistencia: los datos sobreviven reinicios del contenedor.
+      - datos-postgres:/var/lib/postgresql/data
+      # Script de inicialización: se ejecuta solo si la base de datos está vacía.
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - inventario-network
+    restart: unless-stopped
+    healthcheck:
+      # Verificar que PostgreSQL acepta conexiones antes de que reportes-app intente conectar.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------
+  # Contenedor B: Servicio de Reportes
+  # Se conecta a postgres-db por nombre de servicio (red interna Docker).
+  # NO necesita IP de Tailscale porque comparte la misma red Docker.
+  # -------------------------------------------------------------------
+  reportes-app:
+    build: ./reportes
+    container_name: inventario-reportes
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PORT: 4000
+    ports:
+      # Puerto 4000 mapeado al host para acceder a los reportes vía Tailscale
+      - "4000:4000"
+    networks:
+      - inventario-network
+    depends_on:
+      postgres-db:
+        # Esperar a que PostgreSQL pase el healthcheck antes de iniciar reportes
+        condition: service_healthy
+    restart: unless-stopped
+
+# Red Docker interna que permite la comunicación por nombre de servicio.
+# Los contenedores en esta red NO son accesibles desde internet directamente.
+networks:
+  inventario-network:
+    driver: bridge
+
+# Volumen nombrado gestionado por Docker para persistencia de datos.
+# Los datos se mantienen aunque se elimine y recree el contenedor.
+volumes:
+  datos-postgres:

@@ -1,0 +1,13 @@
+{
+  "name": "reportes-inventario",
+  "version": "1.0.0",
+  "description": "Servicio de reportes del sistema de inventario distribuido",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "pg": "^8.11.0"
+  }
+}
