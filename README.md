@@ -56,8 +56,8 @@ App disponible en: `http://localhost:3000`
 
 | Indicador | Valor |
 |---|---|
-| Commits totales | [14] |
-| Issues/PRs fusionados | [3/11] |
+| Commits totales | 14 |
+| Issues/PRs fusionados | 3/11 |
 | Cobertura de pruebas | N/A |
 | Última actualización | 2026-06-14 |
 
